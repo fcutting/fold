@@ -16,8 +16,13 @@ type data[T any] struct {
 	final bool
 }
 
+// ErrMap is a map[int]error where the key is the index of the input that failed.
+// ErrMap implements Stringer.
+// ErrMap implements Error.
 type ErrMap map[int]error
 
+// ErrJoin joins all the errors in the ErrMap in a deterministic way.
+// Each error is of the form "<key>: <error>".
 func (e ErrMap) ErrJoin() error {
 	errs := make([]error, len(e))
 
@@ -31,10 +36,12 @@ func (e ErrMap) ErrJoin() error {
 	return errors.Join(errs...)
 }
 
+// String joins all the errors in the ErrMap and returns it as a string.
 func (e ErrMap) String() string {
 	return e.ErrJoin().Error()
 }
 
+// Error joins all the errors in the ErrMap and returns it as a string.
 func (e ErrMap) Error() string {
 	return e.String()
 }
@@ -110,6 +117,12 @@ func startDoActor[IN, OUT any](do doFunc[IN, OUT], inputChan chan data[IN], resu
 	}()
 }
 
+// Do runs the do func for each input in the inputs slice in parallel and
+// returns a slice of results and an error.
+// The length of the result slice will always be the same length as the inputs slice.
+// If no errors occurred in the execution of the do funcs, the returned err will be nil.
+// If errors occurred in the execution of the do funcs, the result slice will
+// have the zero value of the OUT type at the indexes of the failed inputs.
 func Do[IN, OUT any](inputs []IN, do doFunc[IN, OUT]) (result []OUT, err ErrMap) {
 	inputsLen := len(inputs)
 	inputChan := make(chan data[IN])
